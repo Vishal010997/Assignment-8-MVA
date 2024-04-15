@@ -1,0 +1,360 @@
+---
+title: "MVA_Assignment8_Wine"
+output: html_document
+date: "2024-04-15"
+---
+
+```{R}
+
+# Load required libraries
+library(cluster)     # For cluster analysis
+library(readr)       # For reading data files
+library(factoextra)  # For visualizing multivariate analysis results
+library(magrittr)    # For using the pipe operator %>%
+library(NbClust)     # For determining the optimal number of clusters
+
+```
+
+```{r}
+#for loading csv data
+library(readr)
+
+# Read the CSV file
+df <- read_csv("C:/Rutgers/Subjects/Spring Sem/Multivariate Analysis/Data/wine_new.csv")
+
+#dataframe
+df
+
+```
+
+
+
+
+selected these columns because of positive and negative correlation, other columns were not beneficial for analysis
+```{R}
+# Assuming df is your dataframe
+attach(df)
+
+#selected these columns because of positive and negative correlation, other columns were not beneficial for analysis
+selected_cols <- df[, c("volatile acidity", "citric acid", "chlorides", "sulphates", "alcohol","quality")]
+
+selected_cols
+```
+
+
+
+
+column 6 which is quality (Categorical: Target variable)
+Range parameters: Bad, Poor, Average, Good, Very Good, Excellent
+
+Why I chose these attributes for cluster?
+
+Answer:
+
+volatile acidity: neagtively correlated to target variable
+
+Citric acid: Positively correlated
+
+similar correlation for columns selected showing no randomness
+
+
+Group by quality and calculate the average of all other attributes within each group 
+
+Also assigning groups(random) Assigning groups to target variable:
+
+Ideal range of quality is mention below (ascending)
+
+group number is random
+
+ Bad: 2
+ Poor: 5 
+ Average: 1
+ Good: 4 
+ Very Good: 6
+ Excellent: 3
+
+
+
+```{r}
+
+
+# Group by column 6 and calculate the average of all other columns within each group
+grouped_avg <- aggregate(. ~ quality, data = selected_cols[, -4], FUN = mean)
+
+# Print the grouped averages
+print(grouped_avg)
+
+
+```
+
+
+setting target variable as row name by removing it first
+
+grouping values based on alcohol and assigning a value to target variable based on that
+
+Observation:
+
+as alcohol content increase quality of alcohol also improves as highest scores are assigned to excellent quality of wine based on group number
+
+Lowest values of alcohol are assigned to bad quality wine 
+
+values of alcohol content is increasing with range bad to excellent
+```{R}
+# Set the first column as row names
+row.names(grouped_avg) <- grouped_avg[, 1]  # Assuming the first column contains row names
+
+# Remove the first column from the dataframe
+grouped_avg <- grouped_avg[, -1]
+
+# View the dataframe
+grouped_avg
+```
+
+
+
+Observation:
+
+as alcohol content increase quality of alcohol also improves as highest scores are assigned to excellent quality of wine based on group number
+
+Lowest values of alcohol are assigned to bad quality wine 
+
+values of alcohol content is increasing with range bad to excellent
+
+
+based on this we can observe correlation of attribute with respect to target variable as i mentioned above
+
+
+Scaled values give a picture of positive and negative correlation in range 1 to -1
+
+positive value of attributes means correlated
+
+Negative value of attributes means negatively correlated
+```{R}
+matstd.can <- scale(grouped_avg)
+matstd.can<-data.frame(matstd.can)
+```
+
+
+```{R}
+matstd.can
+attach(matstd.can)
+```
+
+1) Model Development (2 points)
+
+Coefficients:
+
+Volatile Acidity: For each unit increase in volatile acidity, chlorides increase by approximately 0.5054 units.
+Citric Acid: The coefficient for citric acid suggests that it has a negative effect on chlorides, but it is not statistically significant at the conventional significance level of 0.05.
+Alcohol: For each unit increase in alcohol content, chlorides decrease by approximately 0.4398 units.
+
+
+Significance:
+
+The p-values associated with the coefficients indicate their significance in predicting chlorides. Only volatile acidity is statistically significant (p-value = 0.0282).
+
+The overall model is statistically significant, with an F-statistic of 162.2 and a p-value of 0.006135.
+
+
+
+Residuals:
+
+The residuals represent the differences between the observed and predicted values of chlorides.
+
+The average residual is close to zero, indicating that the model is unbiased on average.
+
+The residual standard error is 0.1012, suggesting that the model's predictions typically fall within ±0.1012 units of the observed values.
+R-squared:
+
+The R-squared value of 0.9959 indicates that approximately 99.59% of the variability in chlorides is explained by the predictors in the model.
+
+The adjusted R-squared value of 0.9898 adjusts for the number of predictors in the model.
+
+Overall, the model suggests that volatile acidity and alcohol content are significant predictors of chlorides in wine, while citric acid's effect is inconclusive based on the provided data.
+
+
+```{R}
+# Performing multiple regression on mtcars dataset
+fit <- lm(chlorides~volatile.acidity+citric.acid+alcohol, data=matstd.can)
+#show the results
+summary(fit)
+
+```
+
+
+
+2) Model Acceptance (2 points)
+
+
+Intercept: Close to zero, suggesting that when all predictor variables are zero, the chlorides are also close to zero.
+Volatile Acidity: A positive coefficient of approximately 0.5054 indicates that higher volatile acidity tends to increase chlorides in wine.
+
+Citric Acid: With a negative coefficient of approximately -0.0983, citric acid appears to have a slight decreasing effect on chlorides, although it's not statistically significant.
+
+Alcohol: Similarly, alcohol has a negative coefficient of approximately -0.4398, indicating that higher alcohol content tends to decrease chlorides in wine.
+
+
+Overall, volatile acidity and alcohol content are the significant predictors of chlorides in the model, while the effect of citric acid is not statistically significant.
+
+```{R}
+
+#Summary has three sections. Section1: How well does the model fit the data (before Coefficients). Section2: Is the hypothesis supported? (until sifnif codes). Section3: How well does data fit the model (again).
+# Useful Helper Functions
+coefficients(fit)
+
+
+```
+
+Negativley correlated attirbutes:
+
+[1] Citric and volatile acid -8.03 have negative correlation
+
+[2] chlorides and volatile acid are positively correlated
+
+
+
+
+```{R}
+library(GGally)
+ggpairs(data=matstd.can, title="Wine Data")
+```
+```{R}
+confint(fit,level=0.95)
+```
+
+
+4) Prediction (2 points)
+Average: The predicted value for the "Average" quality category is 0.4208.
+
+Bad: The predicted value for the "Bad" quality category is 1.3731.
+
+Excellent: The predicted value for the "Excellent" quality category is -1.2254.
+
+Good: The predicted value for the "Good" quality category is -0.1840.
+
+Poor: The predicted value for the "Poor" quality category is 0.6163.
+
+Very Good: The predicted value for the "Very Good" quality category is -1.0008
+
+
+```{R}
+fitted(fit)
+```
+
+
+3) Residual Analysis (2 points): 
+
+
+Average, Excellent, and Very Good: The negative residuals indicate that the model tends to underestimate the chlorides for these categories.
+
+
+Bad, Good, and Poor: Conversely, the positive residuals suggest that the model tends to overestimate the chlorides for these categories.
+
+
+Overall, the residuals provide insight into how well the regression model fits the actual chlorides values.
+
+
+```{R}
+residuals(fit)
+```
+```{r}
+#Anova Table
+anova(fit)
+vcov(fit)
+cov2cor(vcov(fit))
+temp <- influence.measures(fit)
+temp
+plot(fit)
+
+```
+```{r}
+library(car)
+outlierTest(fit)
+leveragePlots(fit) # leverage plots
+# Influential Observations
+# added variable plots
+avPlots(fit)
+# Cook's D plot
+# identify D values > 4/(n-k-1)
+cutoff <- 4/((nrow(mtcars)-length(fit$coefficients)-2))
+plot(fit, which=4, cook.levels=cutoff)
+# Influence Plot
+influencePlot(fit, id.method="identify", main="Influence Plot", sub="Circle size is proportial to Cook's Distance" )
+# Normality of Residuals
+# qq plot for studentized resid
+qqPlot(fit, main="QQ Plot")
+# distribution of studentized residual
+```
+
+5) Model Accuracy (2 points)
+
+Variance Formula: The test evaluates the variance of the residuals using a formula that includes the fitted values of the model.
+
+Chisquare and p-value: The chi-square statistic is 1.180393 with 1 degree of freedom, resulting in a p-value of 0.27728.
+
+
+Since the p-value is greater than the significance level of 0.05, we fail to reject the null hypothesis. This suggests that there is no evidence to conclude that the variance of the residuals significantly differs across different levels of the fitted values.
+
+Suggested Power Transformation: The suggested power transformation value is 0.7426849. This transformation can be applied to the model to potentially address issues related to non-constant variance.
+
+
+```{R}
+library(MASS)
+sresid <- studres(fit)
+hist(sresid, freq=FALSE,
+     main="Distribution of Studentized Residuals")
+xfit<-seq(min(sresid),max(sresid),length=40)
+yfit<-dnorm(xfit)
+lines(xfit, yfit)
+#Non-constant Error Variance
+# Evaluate homoscedasticity
+# non-constant error variance test
+ncvTest(fit)
+# plot studentized residuals vs. fitted values
+spreadLevelPlot(fit)
+```
+
+volatile.acidity: The VIF value of 3.679 suggests moderate multicollinearity, indicating that the variance of the coefficient estimate for volatile.acidity is inflated by approximately 3.68 times due to its correlation with other predictor variables.
+
+citric.acid: The VIF value of 6.224 indicates a higher degree of multicollinearity, suggesting that the variance of the coefficient estimate for citric.acid is inflated by approximately 6.22 times due to its correlation with other predictor variables.
+
+alcohol: The VIF value of 8.039 indicates a significant multicollinearity issue, implying that the variance of the coefficient estimate for alcohol is inflated by approximately 8.04 times due to its correlation with other predictor variables.
+```{r}
+#Multi-collinearity
+# Evaluate Collinearity
+vif(fit) # variance inflation factors
+sqrt(vif(fit)) > 2 # problem?
+#Nonlinearity
+# component + residual plot
+crPlots(fit)
+
+#Non-independence of Errors
+# Test for Autocorrelated Errors
+durbinWatsonTest(fit)
+```
+```{R}
+# Global test of model assumptions
+library(gvlma)
+gvmodel <- gvlma(fit)
+summary(gvmodel)
+fit
+summary(fit)
+fit1 <- fit
+fit2 <- lm(mpg ~ disp + hp + wt, data = mtcars)
+# compare models
+anova(fit1, fit2)
+step <- stepAIC(fit, direction="both")
+step$anova # display results
+library(leaps)
+leaps<-regsubsets(mpg~disp+hp+drat+wt+qsec,data=mtcars,nbest=10)
+# view results
+plot(leaps)
+plot(leaps,scale="r2")
+plot(leaps,scale="bic")
+summary(leaps)
+library(relaimpo)
+calc.relimp(fit,type=c("lmg","last","first","pratt"),
+            rela=TRUE)
+
+
+```
